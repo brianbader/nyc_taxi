@@ -14,7 +14,7 @@ top_dir = 'C:/Users/Beatrice/Desktop/Taxi Analysis'
 num_dec = 3
 import os, glob, pandas as pd, numpy as np
 os.chdir(top_dir + '/data')
-files = glob.glob('yellow*')
+files = glob.glob('green*') + glob.glob('yellow*')
 pd_locations = pd.read_pickle('pd_locs.pkl')
 
 # Initialize empty dataframes to fill
@@ -25,25 +25,31 @@ pickups_hd = pd.DataFrame(columns = ['passenger_count', 'day', 'hour', 'rounded_
 pickups_hdl = pd.DataFrame(columns = ['passenger_count', 'date', 'hour', 'borough', 'nbhd'])
 
 # date_avgs: overall trip summaries by date
-date_avgs = pd.DataFrame(columns = ['passenger_count', 'date', 'fare_amount', 'tip_amount', 'trip_distance'])
-date_counts = pd.DataFrame(columns = ['date', 0])
+date_avgs = pd.DataFrame(columns = ['passenger_count', 'date', 'fare_amount', 'tip_amount', 'trip_distance', 'type'])
+date_counts = pd.DataFrame(columns = ['date', 'type', 0])
+
+# running total of records
+total_records = 0
 
 for x in files:
     print(x)
     # Read in pickups files
     tmp = pd.read_csv(x)
+    total_records += tmp.shape[0]
     tmp_col_names = [x.strip(' ').lower() for x in tmp.columns.values.tolist()]
     tmp_col_names = [x.replace('amt', 'amount') for x in tmp_col_names]
     tmp_col_names = [x.replace('start_lon', 'pickup_longitude') for x in tmp_col_names]
     tmp_col_names = [x.replace('start_lat', 'pickup_latitude') for x in tmp_col_names]
+    tmp_col_names = ['pickup_time' if 'pickup_datetime' in x else x for x in tmp_col_names]
+    tmp_col_names = ['dropoff_time' if 'dropoff_datetime' in x else x for x in tmp_col_names]
     tmp.columns = tmp_col_names
     tmp['rounded_lon'] = tmp.pickup_longitude.round(num_dec)
     tmp['rounded_lat'] = tmp.pickup_latitude.round(num_dec)
-    tmp['trip_time_in_secs'] = (pd.to_datetime(tmp.ix[:, 3], format='%Y-%m-%d %H:%M:%S') - 
-                                pd.to_datetime(tmp.ix[:, 2], format='%Y-%m-%d %H:%M:%S')).dt.seconds
-    tmp['day'] = pd.to_datetime(tmp.ix[:, 2], format='%Y-%m-%d %H:%M:%S').dt.dayofweek
-    tmp['hour'] = pd.to_datetime(tmp.ix[:, 2], format='%Y-%m-%d %H:%M:%S').dt.hour
-    tmp['date'] = pd.to_datetime(tmp.ix[:, 2], format='%Y-%m-%d %H:%M:%S').dt.date
+    tmp['trip_time_in_secs'] = (pd.to_datetime(tmp.dropoff_time, format='%Y-%m-%d %H:%M:%S') - 
+                                pd.to_datetime(tmp.pickup_time, format='%Y-%m-%d %H:%M:%S')).dt.seconds
+    tmp['day'] = pd.to_datetime(tmp.pickup_time, format='%Y-%m-%d %H:%M:%S').dt.dayofweek
+    tmp['hour'] = pd.to_datetime(tmp.pickup_time, format='%Y-%m-%d %H:%M:%S').dt.hour
+    tmp['date'] = pd.to_datetime(tmp.pickup_time, format='%Y-%m-%d %H:%M:%S').dt.date
     # Some data cleaning
     tmp = tmp[(tmp.passenger_count < 20) & (tmp.rounded_lon < -73) & (tmp.rounded_lat < 41) & 
               (0 < tmp.passenger_count)  & (-75 < tmp.rounded_lon) & (40 < tmp.rounded_lat) & 
@@ -54,15 +60,16 @@ for x in files:
     # Remove trip speeds that may not make sense (trim top/bottom 1%)
     tmp = tmp[((tmp.trip_distance / tmp.trip_time_in_secs) < np.percentile((tmp.trip_distance / tmp.trip_time_in_secs), 99)) & 
               ((tmp.trip_distance / tmp.trip_time_in_secs) > np.percentile((tmp.trip_distance / tmp.trip_time_in_secs), 1))]
+    tmp['type'] = 'green' if 'green' in x else 'yellow'
     # For pickups hour and day
     pickups_hd = pd.concat([pickups_hd, tmp[['passenger_count', 'day', 'hour', 'rounded_lon', 
                                              'rounded_lat', 'trip_time_in_secs', 'trip_distance']]], axis=0)
     pickups_hd = pickups_hd.groupby(['rounded_lon', 'rounded_lat', 'day', 
                                      'hour'])['passenger_count', 'trip_time_in_secs', 'trip_distance'].sum().reset_index()
     # For date averages, take sums and number of records by date
-    date_avgs = pd.concat([date_avgs, tmp[['passenger_count', 'date', 'fare_amount', 'tip_amount', 'trip_distance']]], axis = 0)
-    date_avgs = date_avgs.groupby(['date'])['passenger_count', 'fare_amount', 'tip_amount', 'trip_distance'].sum().reset_index()
-    date_counts = pd.concat([date_counts, tmp.groupby(['date']).size().reset_index()], axis=0).groupby(['date'])[0].sum().reset_index()
+    date_avgs = pd.concat([date_avgs, tmp[['passenger_count', 'date', 'fare_amount', 'tip_amount', 'trip_distance', 'type']]], axis = 0)
+    date_avgs = date_avgs.groupby(['date', 'type'])['passenger_count', 'fare_amount', 'tip_amount', 'trip_distance'].sum().reset_index()
+    date_counts = pd.concat([date_counts, tmp.groupby(['date', 'type']).size().reset_index()], axis=0).groupby(['date', 'type'])[0].sum().reset_index()
     # For pickups date, hour, and neighborhood
     tmp = tmp[['passenger_count', 'date', 'hour', 'rounded_lon', 'rounded_lat']]
     tmp['passenger_count'] = tmp.groupby(['rounded_lon', 'rounded_lat', 'date', 'hour'])['passenger_count'].transform(sum)
@@ -82,7 +89,7 @@ pickups_hr = pickups_hd.groupby(by=['hour', 'rounded_lat',
                                     'rounded_lon'])['passenger_count'].sum().reset_index()
 
 # Summaries by date
-date_avgs = pd.merge(date_avgs, date_counts, how='inner', on='date')
+date_avgs = pd.merge(date_avgs, date_counts, how='inner', on=['date', 'type'])
 date_avgs.rename(columns={0:'total_pickups'}, inplace=True)
 date_avgs.fare_amount = date_avgs.fare_amount / date_avgs.total_pickups
 date_avgs.tip_amount = date_avgs.tip_amount / date_avgs.total_pickups

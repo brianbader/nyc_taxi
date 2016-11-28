@@ -17,7 +17,7 @@ num_dec = 3
 
 import os, glob, pandas as pd, numpy as np
 os.chdir(top_dir + '/data')
-files = glob.glob('yellow*')
+files = glob.glob('green*') + glob.glob('yellow*')
 pd_locations = pd.DataFrame(columns = ['rounded_lon', 'rounded_lat'])
 
 # Collect all unique rounded pickup/dropoff coords
