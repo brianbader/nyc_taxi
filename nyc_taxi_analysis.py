@@ -4,6 +4,7 @@
 #################################################################
 #################################################################
 
+# Change this path to point to your top directory
 top_dir = 'C:/Users/Beatrice/Desktop/Taxi Analysis'
 
 #################################################################
@@ -20,7 +21,7 @@ from rpy2.robjects import pandas2ri
 %R require('ggplot2')
 pandas2ri.activate()
 # Set random seed
-random.seed(10)
+random.seed(7)
 
 os.chdir(top_dir)
 pickups_hd = pd.read_csv('./data/pickups_hd.gz')
@@ -58,7 +59,7 @@ for i in range(0,24):
             ggplot2.xlim(-74.2, -73.7) + ggplot2.ylim(40.56, 40.93) + \
             ggplot2.labs(x=' ', y=' ', title='NYC taxi pickups %02i:00' % i) + \
             ggplot2.guides(color=False)
-        p.save('./plots/taxi_pickups%02i.png' % i)
+        p.save('./plots/taxi_pickups%02i.png' % i, width=4, height=4.5)
         
 # Create animated .gif of pickups by hour
 import imageio
@@ -75,23 +76,26 @@ p1 = ggplot2.ggplot(pandas2ri.py2ri(date_avgs)) + \
 ggplot2.aes_string(x='date', y='total_pickups', color='type') + \
 ggplot2.scale_colour_manual(values = robjects.StrVector(['green', 'yellow'])) + \
 ggplot2.geom_line() + \
+ggplot2.theme(legend_position='bottom') + \
 ggplot2.labs(y='Total Pickups', x='Date', title='Total Pickups by Date')
-p1.save('./plots/pickups_by_date.png')
+p1.save('./plots/pickups_by_date.png', width=6, height=5)
 
 # average fare and tip by date, color
 p2 = ggplot2.ggplot(pandas2ri.py2ri(date_avgs)) + \
 ggplot2.aes_string(x='date', y='fare_amount', color='type') + \
 ggplot2.scale_colour_manual(values = robjects.StrVector(['green', 'yellow'])) + \
 ggplot2.geom_line() + \
+ggplot2.theme(legend_position='bottom') + \
 ggplot2.labs(y='Average Fare ($)', x='Date', title='Average Fare by Date')
-p2.save('./plots/fares_by_date.png')
+p2.save('./plots/fares_by_date.png', width=6, height=5)
 
 p3 = ggplot2.ggplot(pandas2ri.py2ri(date_avgs)) + \
 ggplot2.aes_string(x='date', y='tip_amount', color='type') + \
 ggplot2.scale_colour_manual(values = robjects.StrVector(['green', 'yellow'])) + \
 ggplot2.geom_line() + \
+ggplot2.theme(legend_position='bottom') + \
 ggplot2.labs(y='Average Tip ($)', x='Date', title='Average Tip by Date')
-p3.save('./plots/tips_by_date.png')
+p3.save('./plots/tips_by_date.png', width=6, height=5)
 
 # Plot late night % of pickups by neighborhood
 pickups_late = pd.merge(pickups_hd, pd_locs, 
@@ -110,8 +114,9 @@ pickups_late = pd.merge(pickups_late, nbhd_borders, how='right', on=['nbhd']).dr
 p4 = ggplot2.ggplot(pandas2ri.py2ri(pickups_late)) + \
 ggplot2.aes_string(x='lon', y='lat', group='nbhd', fill='relative_percent') + \
 ggplot2.geom_polygon() + \
+ggplot2.theme(legend_position='bottom') + \
 ggplot2.labs(x='', y='', title='Late Night Pickups (% of All Pickups)')
-p4.save('./plots/late_night_pickups.png')
+p4.save('./plots/late_night_pickups.png', width=5, height=6)
 
 # Plot % change (2010 to 2015) in pickups by neighborhood
 pickups_change = pickups_hdl.groupby(['nbhd', 'borough', 'year'])['passenger_count'].sum().reset_index()
@@ -128,8 +133,9 @@ p5 = ggplot2.ggplot(pandas2ri.py2ri(pickups_change)) + \
 ggplot2.aes_string(x='lon', y='lat', group='nbhd', fill='percent_change') + \
 ggplot2.geom_polygon() + \
 ggplot2.scale_fill_gradient(low='blue', high='green') + \
+ggplot2.theme(legend_position='bottom') + \
 ggplot2.labs(x='', y='', title='Change In Annual # of Pickups (2010 - 2015)', fill='Percent Change\n(Log-Scale)')
-p5.save('./plots/2010_2015_percent_change.png')
+p5.save('./plots/2010_2015_percent_change.png', width=5, height=6)
 
 
 #################################################################
@@ -229,5 +235,6 @@ ggplot2.aes_string(x='lon', y='lat', group='nbhd', fill='passenger_count') + \
 ggplot2.geom_polygon() + \
 ggplot2.facet_wrap(robjects.Formula('~ type')) + \
 ggplot2.scale_fill_gradient(low='yellow', high='red') + \
+ggplot2.theme(legend_position='bottom') + \
 ggplot2.labs(x='', y='', title='Actual vs. Expected Total Passengers on 5-7-2015', fill='Passenger Count\n(Log-Scale)')
-p6.save('./plots/actual_pred_pickups.png', width=8, height=4)
+p6.save('./plots/actual_pred_pickups.png', width=7, height=5)
