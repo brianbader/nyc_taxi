@@ -22,5 +22,3 @@ Make sure to download the 'nyc_neighborhoods.json' file to the top folder and th
 
 ![alt text](https://github.com/geekman1/nyc_taxi/blob/master/plots/tips_by_date.png "Average Tips by Date and Type")
 
-![alt text](https://github.com/geekman1/nyc_taxi/blob/master/plots/tips_by_date.png "Average Tips by Date and Type")
-

@@ -63,7 +63,7 @@ for i in range(0,24):
 # Create animated .gif of pickups by hour
 import imageio
 
-file_names = sorted((fn for fn in os.listdir('./plots') if fn.endswith('.png')))
+file_names = sorted((fn for fn in os.listdir('./plots') if fn.startswith('taxi_pickups')))
 file_names = ['plots/' + s for s in file_names]
 images = []
 for filename in file_names:
