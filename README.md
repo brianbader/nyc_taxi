@@ -60,7 +60,7 @@ Shown next are the relative proportions of late night pickups by neighborhood (l
 
 # Predicting Taxi Pickups Frequencies by Neighborhood Using Random Forests
 
-It would be of interest to taxi dispatchers to be able to predict the frequency of pickups by location. The following shows the frequency of taxi pickups (by latitude / longitude pair rounded to three digits), by hour from January 2009 - June 2016. It's quite beautiful, and you can clearly see the ebb and flow of airport pickups (particularly JFK).
+It would be of interest to taxi dispatchers to be able to predict the frequency of pickups by location. The following shows the true frequency of taxi pickups (by latitude / longitude pair rounded to three digits), by hour from January 2009 - June 2016. It's quite beautiful, and you can clearly see the ebb and flow of airport pickups (particularly JFK).
 
 ![alt text](https://github.com/geekman1/nyc_taxi/blob/master/plots/pickups_movie.gif "Actual Pickups by Hour, Location")
 
