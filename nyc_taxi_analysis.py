@@ -17,6 +17,7 @@ import os, pandas as pd, numpy as np, random
 from rpy2 import robjects
 from rpy2.robjects.lib import ggplot2
 from rpy2.robjects import pandas2ri
+from tabulate import tabulate
 %load_ext rpy2.ipython
 %R require('ggplot2')
 pandas2ri.activate()
@@ -54,7 +55,7 @@ for i in range(0,24):
         temp_r = pandas2ri.py2ri(temp)
         p = ggplot2.ggplot(temp_r) + \
             ggplot2.aes_string(x='rounded_lon', y='rounded_lat', color='passenger_count') + \
-            ggplot2.geom_point(alpha=0.95) + \
+            ggplot2.geom_point(alpha=0.95, size=0.5) + \
             ggplot2.scale_color_gradient(low='black', high='white', limits=np.array([min_passenger_count, max_passenger_count])) + \
             ggplot2.xlim(-74.2, -73.7) + ggplot2.ylim(40.56, 40.93) + \
             ggplot2.labs(x=' ', y=' ', title='NYC taxi pickups %02i:00' % i) + \
@@ -111,6 +112,11 @@ pickups_late = pd.concat([pickups_late, temp_perc['relative_percent']], axis=1)
 pickups_late = pickups_late[pickups_late['period'] == 'late']
 pickups_late = pd.merge(pickups_late, nbhd_borders, how='right', on=['nbhd']).dropna()
 
+# Find top 10 neighborhoods with largest late night % of pickups
+print(tabulate(pickups_late[['relative_percent', 'nbhd', 
+                             'borough']].drop_duplicates().sort(['relative_percent'], ascending=False).head(10), 
+                             tablefmt='pipe', headers='keys', showindex=False))
+
 p4 = ggplot2.ggplot(pandas2ri.py2ri(pickups_late)) + \
 ggplot2.aes_string(x='lon', y='lat', group='nbhd', fill='relative_percent') + \
 ggplot2.geom_polygon() + \
@@ -126,6 +132,12 @@ temp_change = pickups_change.groupby(['nbhd'])['passenger_count'].apply(lambda x
 temp_change = temp_change.rename(columns={'passenger_count':'percent_change'})
 pickups_change = pd.concat([pickups_change, temp_change['percent_change']], axis=1)
 pickups_change = pickups_change.dropna()
+
+# Find top 10 neighborhoods with largest percent change
+print(tabulate(pickups_change[['percent_change', 'nbhd', 
+                               'borough']].drop_duplicates().sort(['percent_change'], ascending=False).head(10), 
+                               tablefmt='pipe', headers='keys', showindex=False))
+
 pickups_change['percent_change'] = np.log1p(pickups_change['percent_change'] + abs(min(pickups_change['percent_change'])))
 pickups_change = pd.merge(pickups_change, nbhd_borders, how='right', on=['nbhd']).dropna()
 
