@@ -55,7 +55,7 @@ for i in range(0,24):
         temp_r = pandas2ri.py2ri(temp)
         p = ggplot2.ggplot(temp_r) + \
             ggplot2.aes_string(x='rounded_lon', y='rounded_lat', color='passenger_count') + \
-            ggplot2.geom_point(alpha=0.95, size=0.5) + \
+            ggplot2.geom_point(size=0.5) + \
             ggplot2.scale_color_gradient(low='black', high='white', limits=np.array([min_passenger_count, max_passenger_count])) + \
             ggplot2.xlim(-74.2, -73.7) + ggplot2.ylim(40.56, 40.93) + \
             ggplot2.labs(x=' ', y=' ', title='NYC taxi pickups %02i:00' % i) + \
@@ -70,7 +70,7 @@ file_names = ['plots/' + s for s in file_names]
 images = []
 for filename in file_names:
     images.append(imageio.imread(filename))
-imageio.mimsave('./plots/pickups_movie.gif', images, duration=0.3)
+imageio.mimsave('./plots/pickups_movie.gif', images, duration=0.4)
 
 # total pickups by date, color
 p1 = ggplot2.ggplot(pandas2ri.py2ri(date_avgs)) + \
@@ -157,10 +157,10 @@ p5.save('./plots/2010_2015_percent_change.png', width=5, height=6)
 #################################################################
 
 # Do some quick benchmarks (predict 2015 from 2014 data)
-from sklearn import metrics
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import RandomizedSearchCV
 from scipy.stats import randint as sp_randint
+from sklearn.metrics import mean_squared_error, r2_score
 
 pickups_14_15 = pickups_hdl[pickups_hdl['year'].isin([2014, 2015])]
 
@@ -180,7 +180,12 @@ dates_intersect = set.intersection(set(dates_2014), set(dates_2015))
 pickups_14_15 = pickups_14_15[pickups_14_15.date.apply(lambda x: x.strftime('%m-%d')).isin(dates_intersect)]
 pickups_14_15 = pickups_14_15.sort_values(['nbhd', 'date', 'hour']).reset_index()
 
-metrics.mean_squared_error(pickups_14_15[pickups_14_15.year == 2014]['passenger_count'], pickups_14_15[pickups_14_15.year == 2015]['passenger_count'])
+# Check MSE and R^2 of naive approach
+mean_squared_error(pickups_14_15[pickups_14_15.year == 2014]['passenger_count'], 
+                   pickups_14_15[pickups_14_15.year == 2015]['passenger_count'])
+
+r2_score(pickups_14_15[pickups_14_15.year == 2014]['passenger_count'], 
+                   pickups_14_15[pickups_14_15.year == 2015]['passenger_count'])
 
 # Split data into train/test by year
 pickups_14_15['day_of_week'] = pickups_14_15['day_of_week'].apply(str)
@@ -205,8 +210,8 @@ param_dist = {'n_estimators': sp_randint(1, 101),
 
 # Run randomized search
 # Try it on subset of training data to speed up search
-sample_index = X_train.sample(100000).index
-n_iter_search = 20
+sample_index = X_train.sample(50000).index
+n_iter_search = 50
 random_search = RandomizedSearchCV(rf, param_distributions=param_dist, n_iter=n_iter_search)
 random_search.fit(X_train.ix[sample_index], Y_train.ix[sample_index])
 random_search.best_params_
@@ -226,7 +231,10 @@ rf = RandomForestRegressor(n_estimators=random_search.best_params_['n_estimators
                            min_samples_split=random_search.best_params_['min_samples_split'], 
                            bootstrap=random_search.best_params_['bootstrap'])
 rf.fit(X_train, Y_train)
-metrics.mean_squared_error(Y_test, rf.predict(X_test))
+
+# Check MSE and R^2 of RF approach
+mean_squared_error(Y_test, rf.predict(X_test))
+r2_score(Y_test, rf.predict(X_test))
 
 # Prepare the RF output to be plotted
 pickups_2015_actual = pickups_14_15[pickups_14_15['year'] == 2015][['borough', 'nbhd', 'date', 'hour', 'passenger_count']]
